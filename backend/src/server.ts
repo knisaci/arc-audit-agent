@@ -7,6 +7,7 @@ import { auditContract } from "./audit";
 import { checkRateLimit } from "./ratelimit";
 import { insertAudit, getAuditById, getAuditCount } from "./db";
 import { postAuditOnChain } from "./onchain";
+import { verifyPayment } from "./payment";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -71,6 +72,18 @@ app.post("/audit", async (req, res) => {
     res.status(429).json({
       error: "Rate limit exceeded",
       retryAfterSeconds: rateLimit.retryAfterSeconds,
+    });
+    return;
+  }
+
+  // Payment verification
+  const payment = await verifyPayment(callerAddress);
+  if (!payment.verified) {
+    res.status(402).json({
+      error: "Payment required",
+      message: payment.reason,
+      registryAddress: process.env.AUDIT_REGISTRY_ADDRESS,
+      requiredAmount: "1 USDC",
     });
     return;
   }
