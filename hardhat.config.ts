@@ -10,9 +10,10 @@ const config: HardhatUserConfig = {
     arc_testnet: {
       url: process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network",
       chainId: 5042002,
-      accounts: process.env.DEPLOYER_PRIVATE_KEY
-        ? [process.env.DEPLOYER_PRIVATE_KEY]
-        : [],
+      accounts: [
+        process.env.DEPLOYER_PRIVATE_KEY,
+        process.env.TREASURY_PRIVATE_KEY,
+      ].filter(Boolean) as string[],
     },
   },
 };
