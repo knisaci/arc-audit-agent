@@ -1,0 +1,21 @@
+{
+  "name": "ArcAuditAgent v1.0",
+  "description": "Autonomous smart contract security auditor deployed on Circle's Arc Network. Accepts Solidity contracts, runs Claude-powered vulnerability analysis, and posts cryptographic audit results on-chain. Designed for agent-to-agent commerce — any autonomous agent with an Arc wallet can pay 1 USDC and receive a verified audit report.",
+  "image": "ipfs://bafkreibdi6623n3xpf7ymk62ckb4bo75o3qemwkpfvp5i25j66itxvsoei",
+  "agent_type": "security_auditor",
+  "capabilities": [
+    "smart_contract_auditing",
+    "vulnerability_detection",
+    "gas_analysis",
+    "on_chain_attestation",
+    "agent_to_agent_commerce"
+  ],
+  "api_endpoint": "https://arc-audit-agent-production.up.railway.app",
+  "registry_contract": "0xC996c0143c4C88F0B0bC32d328D14c071A603CcB",
+  "network": "arc-testnet",
+  "payment": "1 USDC per audit",
+  "powered_by": "Anthropic Claude",
+  "version": "1.0.0",
+  "builder": "Kiran Nisaci",
+  "github": "https://github.com/knisaci/arc-audit-agent"
+}
