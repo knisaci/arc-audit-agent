@@ -11,7 +11,7 @@ const STATUS_NAMES = ["Open", "Funded", "Submitted", "Completed", "Rejected", "E
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  const jobId = 19077;
+  const jobId = 19141;
 
   const commerce = new ethers.Contract(
     "0x0747EEf0706327138c69792bF28Cd525089e4583",
