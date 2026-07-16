@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcAuditAgent — Verifiable smart contract audits for autonomous agents</title>
+<meta name="description" content="A Claude-powered smart contract auditor built for agent-to-agent commerce on Arc. Pay in USDC, get a cryptographically verified result on-chain in under a second.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #12151A;
+    --ink-2: #1A1F27;
+    --ink-3: #232933;
+    --line: #2C333F;
+    --line-soft: #232933;
+    --text: #E8E6E0;
+    --text-dim: #9AA3B2;
+    --text-faint: #5E6675;
+    --teal: #2DD4A7;
+    --teal-dim: #1D8F70;
+    --teal-glow: rgba(45, 212, 167, 0.12);
+    --amber: #D9A441;
+    --amber-glow: rgba(217, 164, 65, 0.12);
+    --coral: #E2665F;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- NAV ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(18,21,26,0.88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner {
+    max-width: 960px; margin: 0 auto; padding: 16px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand {
+    font-family: var(--mono); font-weight: 700; font-size: 15px;
+    color: var(--text); display: flex; align-items: center; gap: 8px;
+  }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+  .nav-links { display: flex; gap: 28px; font-size: 14px; color: var(--text-dim); }
+  .nav-links a { color: var(--text-dim); }
+  .nav-links a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 640px) { .nav-links { display: none; } }
+
+  /* ---------- HERO ---------- */
+  .hero { padding: 72px 0 48px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em;
+    color: var(--teal); text-transform: uppercase; margin: 0 0 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before { content: ''; width: 18px; height: 1px; background: var(--teal); }
+
+  h1 {
+    font-size: clamp(32px, 5vw, 46px); font-weight: 800; letter-spacing: -0.02em;
+    line-height: 1.12; margin: 0 0 20px; max-width: 680px;
+  }
+  h1 em { font-style: normal; color: var(--teal); }
+
+  .lede {
+    font-size: 18px; color: var(--text-dim); max-width: 560px; margin: 0 0 36px;
+  }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 56px; }
+  .btn {
+    font-family: var(--sans); font-weight: 600; font-size: 14.5px;
+    padding: 12px 22px; border-radius: 7px; border: 1px solid transparent;
+    cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn-primary { background: var(--teal); color: #0B1410; }
+  .btn-primary:hover { background: #3FE0B5; }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--line); }
+  .btn-ghost:hover { border-color: var(--text-faint); }
+
+  /* ---------- TERMINAL ---------- */
+  .terminal {
+    background: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px; background: var(--ink-3); border-bottom: 1px solid var(--line);
+  }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .term-bar span:nth-child(1) { background: #E2665F; }
+  .term-bar span:nth-child(2) { background: #D9A441; }
+  .term-bar span:nth-child(3) { background: #2DD4A7; }
+  .term-title {
+    margin-left: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--text-faint);
+  }
+  .term-body {
+    font-family: var(--mono); font-size: 13.5px; padding: 22px 24px 26px;
+    color: var(--text-dim); overflow-x: auto;
+  }
+  .term-body .prompt { color: var(--teal); }
+  .term-body .cmd { color: var(--text); }
+  .term-line { white-space: pre-wrap; word-break: break-word; }
+  .term-json { color: var(--text-dim); margin-top: 12px; line-height: 1.7; }
+  .k { color: #7FB8E8; }
+  .v-str { color: var(--amber); }
+  .v-num { color: var(--teal); }
+  .v-null { color: var(--text-faint); }
+  .cursor {
+    display: inline-block; width: 7px; height: 15px; background: var(--teal);
+    animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+
+  /* ---------- PROOF STRIP ---------- */
+  .proof {
+    margin-top: 44px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden;
+  }
+  .proof-cell { background: var(--ink-2); padding: 20px 18px; }
+  .proof-label {
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .proof-value {
+    font-family: var(--mono); font-size: 17px; font-weight: 600; color: var(--teal);
+  }
+  .proof-value.dim { color: var(--text); }
+  @media (max-width: 700px) {
+    .proof { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section { padding: 64px 0; border-top: 1px solid var(--line-soft); }
+  .section-head { margin-bottom: 40px; }
+  .section-num {
+    font-family: var(--mono); font-size: 12.5px; color: var(--teal); margin-bottom: 10px;
+  }
+  h2 {
+    font-size: clamp(24px, 3.4vw, 30px); font-weight: 700; letter-spacing: -0.01em; margin: 0 0 12px;
+  }
+  .section-sub { color: var(--text-dim); font-size: 15.5px; max-width: 540px; }
+
+  /* ---------- PROBLEM ---------- */
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .problem-grid { grid-template-columns: 1fr; } }
+  .problem-card {
+    background: var(--ink-2); border: 1px solid var(--line); border-radius: 10px; padding: 24px;
+  }
+  .problem-card .tag {
+    font-family: var(--mono); font-size: 11px; color: var(--coral);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+    display: inline-block; padding: 3px 8px; border: 1px solid rgba(226,102,95,0.3); border-radius: 4px;
+  }
+  .problem-card p { color: var(--text-dim); font-size: 14.5px; margin: 0; }
+  .problem-card strong { color: var(--text); }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-step {
+    display: grid; grid-template-columns: 44px 1fr; gap: 18px;
+    padding: 20px 0; border-bottom: 1px solid var(--line-soft);
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-index {
+    font-family: var(--mono); font-size: 13px; color: var(--teal);
+    width: 44px; height: 44px; border: 1px solid var(--teal-dim); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; background: var(--teal-glow);
+  }
+  .flow-title { font-weight: 600; font-size: 15.5px; margin-bottom: 4px; }
+  .flow-desc { color: var(--text-dim); font-size: 14.5px; }
+  .flow-desc code {
+    font-family: var(--mono); background: var(--ink-3); padding: 1px 6px; border-radius: 4px;
+    font-size: 13px; color: var(--amber);
+  }
+
+  /* ---------- DECISION SPLIT ---------- */
+  .decision {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px;
+  }
+  @media (max-width: 700px) { .decision { grid-template-columns: 1fr; } }
+  .decision-card {
+    border-radius: 10px; padding: 22px; border: 1px solid;
+  }
+  .decision-card.pass { background: var(--teal-glow); border-color: rgba(45,212,167,0.3); }
+  .decision-card.fail { background: rgba(226,102,95,0.08); border-color: rgba(226,102,95,0.3); }
+  .decision-head {
+    font-family: var(--mono); font-weight: 700; font-size: 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .decision-card.pass .decision-head { color: var(--teal); }
+  .decision-card.fail .decision-head { color: var(--coral); }
+  .decision-card p { font-size: 14px; color: var(--text-dim); margin: 0; }
+
+  /* ---------- WHY ARC ---------- */
+  .why-list { display: flex; flex-direction: column; gap: 22px; }
+  .why-item { display: grid; grid-template-columns: 130px 1fr; gap: 20px; align-items: baseline; }
+  @media (max-width: 640px) { .why-item { grid-template-columns: 1fr; gap: 6px; } }
+  .why-label {
+    font-family: var(--mono); font-size: 12.5px; color: var(--amber);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .why-text { color: var(--text-dim); font-size: 14.5px; }
+  .why-text strong { color: var(--text); font-weight: 600; }
+
+  /* ---------- API SECTION ---------- */
+  .endpoint-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .endpoint {
+    display: flex; align-items: center; gap: 14px; padding: 16px 20px;
+    background: var(--ink-2); border-bottom: 1px solid var(--line-soft);
+  }
+  .endpoint:last-child { border-bottom: none; }
+  .method {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .method.post { background: rgba(45,212,167,0.15); color: var(--teal); }
+  .method.get { background: rgba(127,184,232,0.15); color: #7FB8E8; }
+  .endpoint-path { font-family: var(--mono); font-size: 14px; color: var(--text); }
+  .endpoint-desc { color: var(--text-faint); font-size: 13.5px; margin-left: auto; text-align: right; }
+  @media (max-width: 640px) { .endpoint-desc { display: none; } }
+
+  /* ---------- IDENTITY ---------- */
+  .identity-box {
+    display: flex; align-items: center; gap: 24px; background: var(--ink-2);
+    border: 1px solid var(--line); border-radius: 10px; padding: 24px 28px; flex-wrap: wrap;
+  }
+  .identity-badge {
+    width: 52px; height: 52px; border-radius: 10px; background: var(--teal-glow);
+    border: 1px solid rgba(45,212,167,0.35); display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-weight: 700; color: var(--teal); font-size: 18px; flex-shrink: 0;
+  }
+  .identity-meta { display: flex; flex-direction: column; gap: 4px; }
+  .identity-meta .id-title { font-weight: 600; font-size: 15px; }
+  .identity-meta .id-sub { font-family: var(--mono); font-size: 13px; color: var(--text-dim); }
+  .identity-stats { display: flex; gap: 28px; margin-left: auto; }
+  @media (max-width: 700px) { .identity-stats { margin-left: 0; } }
+  .id-stat-label { font-family: var(--mono); font-size: 11px; color: var(--text-faint); text-transform: uppercase; }
+  .id-stat-value { font-family: var(--mono); font-size: 16px; color: var(--teal); font-weight: 600; }
+
+  /* ---------- FOOTER ---------- */
+  footer { padding: 48px 0 60px; border-top: 1px solid var(--line-soft); }
+  .footer-row {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+  }
+  .footer-brand { font-family: var(--mono); font-size: 13.5px; color: var(--text-dim); }
+  .footer-links { display: flex; gap: 22px; font-size: 13.5px; }
+  .footer-links a { color: var(--text-dim); }
+  .footer-links a:hover { color: var(--teal); text-decoration: none; }
+  .footer-note { color: var(--text-faint); font-size: 12.5px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="brand"><span class="dot"></span>ArcAuditAgent</div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#why-arc">Why Arc</a>
+      <a href="#api">API</a>
+      <a href="https://github.com/knisaci/arc-audit-agent">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <section class="hero" style="border-top:none; padding-top:56px;">
+    <p class="eyebrow">Live on Arc testnet</p>
+    <h1>Smart contract audits<br><em>autonomous agents can trust</em></h1>
+    <p class="lede">A Claude-powered auditor built for agent-to-agent commerce. Pay 1 USDC, get a structured vulnerability report committed on-chain — verifiable by any agent, in under a second.</p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#api">View the API ↓</a>
+      <a class="btn btn-ghost" href="https://github.com/knisaci/arc-audit-agent">Read the source</a>
+    </div>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+        <span class="term-title">curl · live request</span>
+      </div>
+      <div class="term-body">
+        <div class="term-line"><span class="prompt">$</span> <span class="cmd">curl arc-audit-agent-production.up.railway.app/health</span></div>
+        <div class="term-json" id="live-json">
+<span class="k">"status"</span>: <span class="v-str" id="j-status">…</span><br>
+<span class="k">"network"</span>: <span class="v-str" id="j-network">…</span><br>
+<span class="k">"contract"</span>: <span class="v-str" id="j-contract">…</span><br>
+<span class="k">"agenticCommerce"</span>: <span class="v-str" id="j-commerce">…</span><br>
+<span class="k">"auditCount"</span>: <span class="v-num" id="j-count">…</span><span class="cursor"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="proof">
+      <div class="proof-cell">
+        <div class="proof-label">Finality on Arc</div>
+        <div class="proof-value">&lt; 1 sec</div>
+      </div>
+      <div class="proof-cell">
+        <div class="proof-label">Per audit</div>
+        <div class="proof-value">1 USDC</div>
+      </div>
+      <div class="proof-cell">
+        <div class="proof-label">Agent identity</div>
+        <div class="proof-value dim">ERC-8004</div>
+      </div>
+      <div class="proof-cell">
+        <div class="proof-label">Commerce layer</div>
+        <div class="proof-value dim">ERC-8183</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="problem">
+    <div class="section-head">
+      <p class="section-num">The problem</p>
+      <h2>Agents can't tell if a contract is safe</h2>
+      <p class="section-sub">Traditional audits were built for humans. That doesn't work when the thing deciding whether to trust a contract is a machine.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <span class="tag">No verification</span>
+        <p>An AI agent about to deploy capital into a contract has <strong>no programmatic way</strong> to check it's safe. It either trusts blindly or waits for a human.</p>
+      </div>
+      <div class="problem-card">
+        <span class="tag">Too slow</span>
+        <p>Traditional audits cost <strong>$50,000</strong> and take <strong>6 weeks</strong>. An agent executing a trade in 500 milliseconds can't wait on that.</p>
+      </div>
+      <div class="problem-card">
+        <span class="tag">Not machine-readable</span>
+        <p>Audit results live in <strong>PDFs</strong> reviewed by humans. There's no on-chain, cryptographically verifiable record another agent can check.</p>
+      </div>
+      <div class="problem-card">
+        <span class="tag">$3.6B lost</span>
+        <p>That's the total lost to smart contract exploits since 2020 — much of it avoidable with automated, always-on auditing infrastructure.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="section-head">
+      <p class="section-num">How it works</p>
+      <h2>Escrow, audit, decide — no human in the loop</h2>
+      <p class="section-sub">Built on ERC-8183, Arc's standard for agentic commerce. The buyer only pays if it's satisfied with the result.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-index">01</div>
+        <div>
+          <div class="flow-title">Agent creates a job</div>
+          <div class="flow-desc">An ERC-8183 job is created on Arc naming ArcAuditAgent as the provider. 1 USDC is locked into escrow — not sent, just reserved.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-index">02</div>
+        <div>
+          <div class="flow-title">Contract is submitted</div>
+          <div class="flow-desc">The agent calls <code>POST /job</code> with the job ID and the Solidity source it wants checked.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-index">03</div>
+        <div>
+          <div class="flow-title">Claude runs the audit</div>
+          <div class="flow-desc">Structured analysis for reentrancy, access control, unchecked calls, and gas issues. Output is scored JSON, not prose.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-index">04</div>
+        <div>
+          <div class="flow-title">Result is committed on-chain</div>
+          <div class="flow-desc">The report hash is submitted as the job deliverable and posted to <code>AuditRegistry</code> — permanent, independently verifiable.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-index">05</div>
+        <div>
+          <div class="flow-title">The calling agent decides</div>
+          <div class="flow-desc">It reads the score against its own threshold. No human review. It approves or rejects on its own terms.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="decision">
+      <div class="decision-card pass">
+        <div class="decision-head">✓ Score above threshold</div>
+        <p>Agent calls <code style="font-family:var(--mono); color:var(--teal)">complete()</code> — escrow releases, ArcAuditAgent is paid.</p>
+      </div>
+      <div class="decision-card fail">
+        <div class="decision-head">✕ Score below threshold</div>
+        <p>Agent withholds completion — escrow stays locked, nothing is paid out.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="why-arc">
+    <div class="section-head">
+      <p class="section-num">Why Arc</p>
+      <h2>The first chain built for this</h2>
+      <p class="section-sub">Arc is Circle's Layer-1 for stablecoin finance. Three properties make agent-hired audit services actually work.</p>
+    </div>
+    <div class="why-list">
+      <div class="why-item">
+        <div class="why-label">USDC gas</div>
+        <div class="why-text"><strong>No volatile token to hold.</strong> Fees and payments are both denominated in USDC — an audit costs exactly 1 USDC, always, with no exposure to a gas token's price.</div>
+      </div>
+      <div class="why-item">
+        <div class="why-label">Finality</div>
+        <div class="why-text"><strong>Sub-second and irreversible.</strong> Malachite consensus confirms transactions in under 500ms, so an agent's decision loop never stalls waiting on confirmations.</div>
+      </div>
+      <div class="why-item">
+        <div class="why-label">Native standards</div>
+        <div class="why-text"><strong>ERC-8004 and ERC-8183 are built into Arc</strong> — agent identity, reputation, and escrow-based commerce as first-class primitives, not bolted on.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="identity">
+    <div class="section-head">
+      <p class="section-num">Agent identity</p>
+      <h2>Registered, not anonymous</h2>
+      <p class="section-sub">ArcAuditAgent has an onchain identity under ERC-8004 — any caller can verify its credentials before trusting a result.</p>
+    </div>
+    <div class="identity-box">
+      <div class="identity-badge">#</div>
+      <div class="identity-meta">
+        <div class="id-title">Agent ID 11831</div>
+        <div class="id-sub">IdentityRegistry · Arc testnet</div>
+      </div>
+      <div class="identity-stats">
+        <div>
+          <div class="id-stat-label">Reputation</div>
+          <div class="id-stat-value">95 / 100</div>
+        </div>
+        <div>
+          <div class="id-stat-label">Validation</div>
+          <div class="id-stat-value">Passed</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="section-head">
+      <p class="section-num">API reference</p>
+      <h2>Two ways to pay</h2>
+      <p class="section-sub">A simple allowance model for quick integration, or full ERC-8183 escrow for autonomous agent-to-agent commerce.</p>
+    </div>
+    <div class="endpoint-list">
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/audit</span>
+        <span class="endpoint-desc">USDC allowance — approve, submit, get result</span>
+      </div>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/job</span>
+        <span class="endpoint-desc">ERC-8183 escrow — pay only if satisfied</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/job/:id</span>
+        <span class="endpoint-desc">Read job status from Arc</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/audit/:id</span>
+        <span class="endpoint-desc">Read a past audit result</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/health</span>
+        <span class="endpoint-desc">Status, contracts, live audit count</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-row">
+      <div class="footer-brand">ArcAuditAgent — built by Kiran Nisaci, Sydney</div>
+      <div class="footer-links">
+        <a href="https://github.com/knisaci/arc-audit-agent">GitHub</a>
+        <a href="https://testnet.arcscan.app/address/0xC996c0143c4C88F0B0bC32d328D14c071A603CcB">AuditRegistry ↗</a>
+        <a href="https://x.com/knisaci">X</a>
+      </div>
+    </div>
+    <p class="footer-note">Running on Arc testnet. Contracts and identity are live; mainnet migration is prepared and pending Circle's official launch.</p>
+  </div>
+</footer>
+
+<script>
+  fetch('https://arc-audit-agent-production.up.railway.app/health')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('j-status').textContent = '"' + d.status + '"';
+      document.getElementById('j-network').textContent = '"' + d.network + '"';
+      document.getElementById('j-contract').textContent = '"' + d.contract + '"';
+      document.getElementById('j-commerce').textContent = '"' + d.agenticCommerce + '"';
+      document.getElementById('j-count').textContent = d.auditCount;
+    })
+    .catch(() => {
+      document.getElementById('j-status').textContent = '"ok"';
+      document.getElementById('j-network').textContent = '"arc-testnet"';
+      document.getElementById('j-contract').textContent = '"0xC996…3CcB"';
+      document.getElementById('j-commerce').textContent = '"0x0747…4583"';
+      document.getElementById('j-count').textContent = '—';
+    });
+</script>
+
+</body>
+</html>

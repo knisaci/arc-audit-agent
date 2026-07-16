@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+import path from "path";
 import express from "express";
 import { ethers } from "ethers";
 import { auditContract } from "./audit";
@@ -11,6 +12,7 @@ import { verifyPayment } from "./payment";
 import { getJobDetails, setBudgetForJob, submitDeliverable } from "./commerce";
 
 const app = express();
+app.use(express.static(path.join(__dirname, "../public")));
 app.use(express.json({ limit: "1mb" }));
 
 const PORT = process.env.PORT || 3000;
