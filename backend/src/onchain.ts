@@ -3,6 +3,26 @@ dotenv.config();
 
 import { ethers } from "ethers";
 
+// Network is controlled entirely by environment variables — no code changes needed to switch between
+// testnet and mainnet. Update these three vars in backend/.env (or Railway) to switch:
+//
+//   ARC_RPC_URL              RPC endpoint   (testnet: https://rpc.testnet.arc.network
+//                                            mainnet: https://rpc.arc.network)
+//   AUDIT_REGISTRY_ADDRESS   Deployed contract address on the target network
+//   USDC_ADDRESS             USDC token address on the target network
+
+export const networkConfig = {
+  rpcUrl: process.env.ARC_RPC_URL!,
+  registryAddress: process.env.AUDIT_REGISTRY_ADDRESS!,
+  usdcAddress: process.env.USDC_ADDRESS,
+  isMainnet: process.env.ARC_RPC_URL === "https://rpc.arc.network",
+};
+
+console.log(
+  `[onchain] network=${networkConfig.isMainnet ? "arc-mainnet" : "arc-testnet"}`,
+  `registry=${networkConfig.registryAddress}`
+);
+
 const AUDIT_REGISTRY_ABI = [
   "function submitAudit(bytes32 contractHash, bytes32 reportHash, uint8 score, address caller) external returns (uint256)",
   "function getAuditCount() external view returns (uint256)",
@@ -15,7 +35,7 @@ export async function postAuditOnChain(params: {
   score: number;
   callerAddress: string;
 }): Promise<{ txHash: string; auditId: number }> {
-  const provider = new ethers.JsonRpcProvider(process.env.ARC_RPC_URL);
+  const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl);
 
   const wallet = new ethers.Wallet(
     process.env.DEPLOYER_PRIVATE_KEY!,
@@ -23,7 +43,7 @@ export async function postAuditOnChain(params: {
   );
 
   const registry = new ethers.Contract(
-    process.env.AUDIT_REGISTRY_ADDRESS!,
+    networkConfig.registryAddress,
     AUDIT_REGISTRY_ABI,
     wallet
   );
@@ -39,7 +59,6 @@ export async function postAuditOnChain(params: {
 
   const receipt = await tx.wait(1);
 
-  // Get auditId from event log
   let auditId = 0;
   for (const log of receipt.logs) {
     try {

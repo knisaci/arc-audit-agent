@@ -15,6 +15,14 @@ const config: HardhatUserConfig = {
         process.env.TREASURY_PRIVATE_KEY,
       ].filter(Boolean) as string[],
     },
+    arc_mainnet: {
+      url: process.env.ARC_MAINNET_RPC_URL || "https://rpc.arc.network",
+      chainId: 5042,
+      accounts: [
+        process.env.DEPLOYER_PRIVATE_KEY,
+        process.env.TREASURY_PRIVATE_KEY,
+      ].filter(Boolean) as string[],
+    },
   },
 };
 
