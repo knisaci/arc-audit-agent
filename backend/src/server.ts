@@ -11,6 +11,7 @@ import { postAuditOnChain } from "./onchain";
 import { verifyPayment } from "./payment";
 import { getJobDetails, setBudgetForJob, submitDeliverable } from "./commerce";
 import { fetchVerifiedSource } from "./sourcefetch";
+import { checkUnverifiedContract } from "./unverifiedcheck";
 
 const app = express();
 app.use(express.static(path.join(__dirname, "../public")));
@@ -302,10 +303,23 @@ app.post("/check", async (req, res) => {
   const fetched = await fetchVerifiedSource(address, explorerBaseUrl);
 
   if (!fetched.verified) {
+    const rpcUrl =
+      process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network";
+    const unverified = await checkUnverifiedContract(
+      address,
+      explorerBaseUrl,
+      rpcUrl
+    );
     res.json({
       verified: false,
       message:
-        "Contract is not verified. Source-level audit isn't possible, but an unverified contract on a new chain is itself worth treating with caution.",
+        "Contract is not verified. Source-level audit isn't possible — here's what we can tell you instead.",
+      deploymentBlock: unverified.deploymentBlock,
+      deploymentTimestamp: unverified.deploymentTimestamp,
+      isLikelyProxy: unverified.isLikelyProxy,
+      warning: unverified.isLikelyProxy
+        ? "This contract is upgradeable (proxy pattern). The owner can change its logic after deployment."
+        : null,
     });
     return;
   }
