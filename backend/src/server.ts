@@ -303,6 +303,15 @@ app.post("/check", async (req, res) => {
   const fetched = await fetchVerifiedSource(address, explorerBaseUrl);
 
   if (!fetched.verified) {
+    const unverifiedRateLimit = checkRateLimit(req.ip ?? "unknown", 30);
+    if (!unverifiedRateLimit.allowed) {
+      res.status(429).json({
+        error: "Rate limit exceeded",
+        retryAfterSeconds: unverifiedRateLimit.retryAfterSeconds,
+      });
+      return;
+    }
+
     const rpcUrl =
       process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network";
     const unverified = await checkUnverifiedContract(
@@ -324,7 +333,7 @@ app.post("/check", async (req, res) => {
     return;
   }
 
-  const rateLimit = checkRateLimit(req.ip ?? "unknown");
+  const rateLimit = checkRateLimit(req.ip ?? "unknown", 20);
   if (!rateLimit.allowed) {
     res.status(429).json({
       error: "Rate limit exceeded",

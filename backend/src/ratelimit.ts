@@ -1,9 +1,11 @@
 const requestMap = new Map<string, number[]>();
 
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS = 5;
 
-export function checkRateLimit(address: string): {
+export function checkRateLimit(
+  address: string,
+  maxRequests: number = 5
+): {
   allowed: boolean;
   retryAfterSeconds: number;
 } {
@@ -12,7 +14,7 @@ export function checkRateLimit(address: string): {
 
   const recent = timestamps.filter((t) => now - t < WINDOW_MS);
 
-  if (recent.length >= MAX_REQUESTS) {
+  if (recent.length >= maxRequests) {
     const oldest = recent[0];
     const retryAfterSeconds = Math.ceil(
       (oldest + WINDOW_MS - now) / 1000
