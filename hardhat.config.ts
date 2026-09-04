@@ -24,6 +24,21 @@ const config: HardhatUserConfig = {
       ].filter(Boolean) as string[],
     },
   },
+  etherscan: {
+    apiKey: {
+      arc_testnet: "abc",
+    },
+    customChains: [
+      {
+        network: "arc_testnet",
+        chainId: 5042002,
+        urls: {
+          apiURL: "https://testnet.arcscan.app/api",
+          browserURL: "https://testnet.arcscan.app",
+        },
+      },
+    ],
+  },
 };
 
 export default config;

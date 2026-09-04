@@ -10,6 +10,7 @@ import { insertAudit, getAuditById, getAuditCount } from "./db";
 import { postAuditOnChain } from "./onchain";
 import { verifyPayment } from "./payment";
 import { getJobDetails, setBudgetForJob, submitDeliverable } from "./commerce";
+import { fetchVerifiedSource } from "./sourcefetch";
 
 const app = express();
 app.use(express.static(path.join(__dirname, "../public")));
@@ -280,6 +281,56 @@ app.post("/audit", async (req, res) => {
       reportHash,
       contractHash,
       txHash,
+    });
+  } catch (error) {
+    console.error("Audit error:", error);
+    res.status(500).json({ error: "Audit failed. Please try again." });
+  }
+});
+
+// Free source-fetch + audit (no payment, no on-chain posting)
+app.post("/check", async (req, res) => {
+  const { address } = req.body;
+
+  if (!address || !ethers.isAddress(address)) {
+    res.status(400).json({ error: "Invalid or missing address" });
+    return;
+  }
+
+  const explorerBaseUrl =
+    process.env.ARC_EXPLORER_URL || "https://testnet.arcscan.app";
+  const fetched = await fetchVerifiedSource(address, explorerBaseUrl);
+
+  if (!fetched.verified) {
+    res.json({
+      verified: false,
+      message:
+        "Contract is not verified. Source-level audit isn't possible, but an unverified contract on a new chain is itself worth treating with caution.",
+    });
+    return;
+  }
+
+  const rateLimit = checkRateLimit(req.ip ?? "unknown");
+  if (!rateLimit.allowed) {
+    res.status(429).json({
+      error: "Rate limit exceeded",
+      retryAfterSeconds: rateLimit.retryAfterSeconds,
+    });
+    return;
+  }
+
+  try {
+    const report = await auditContract(
+      fetched.sourceCode!,
+      fetched.contractName ?? address
+    );
+    res.json({
+      verified: true,
+      contractName: fetched.contractName,
+      score: report.score,
+      vulnerabilities: report.vulnerabilities,
+      gasFindings: report.gasFindings,
+      bestPracticeFindings: report.bestPracticeFindings,
     });
   } catch (error) {
     console.error("Audit error:", error);
