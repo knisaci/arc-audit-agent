@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check a contract — ArcAuditAgent</title>
+<meta name="description" content="Paste any Arc contract address and get an instant free security check — Claude-powered audit for verified contracts, deployment and proxy signals for unverified ones.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #12151A;
+    --ink-2: #1A1F27;
+    --ink-3: #232933;
+    --line: #2C333F;
+    --line-soft: #232933;
+    --text: #E8E6E0;
+    --text-dim: #9AA3B2;
+    --text-faint: #5E6675;
+    --teal: #2DD4A7;
+    --teal-dim: #1D8F70;
+    --teal-glow: rgba(45, 212, 167, 0.12);
+    --amber: #D9A441;
+    --amber-glow: rgba(217, 164, 65, 0.12);
+    --coral: #E2665F;
+    --coral-glow: rgba(226, 102, 95, 0.10);
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ink); color: var(--text);
+    font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+  nav {
+    position: sticky; top: 0; z-index: 50; background: rgba(18,21,26,0.9);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner { max-width: 760px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-family: var(--mono); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+  .nav-links { display: flex; gap: 24px; font-size: 14px; color: var(--text-dim); }
+  .nav-links a { color: var(--text-dim); }
+  .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+  .hero { padding: 56px 0 32px; text-align: center; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; color: var(--teal);
+    text-transform: uppercase; margin: 0 0 14px; display: flex; align-items: center;
+    justify-content: center; gap: 10px;
+  }
+  .eyebrow::before, .eyebrow::after { content: ''; width: 18px; height: 1px; background: var(--teal); }
+  h1 { font-size: clamp(26px, 5vw, 36px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 14px; }
+  .lede { font-size: 16px; color: var(--text-dim); max-width: 480px; margin: 0 auto 36px; }
+
+  .check-form {
+    display: flex; gap: 10px; background: var(--ink-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px; margin-bottom: 8px;
+  }
+  .check-input {
+    flex: 1; background: transparent; border: none; outline: none; color: var(--text);
+    font-family: var(--mono); font-size: 14.5px; padding: 12px 14px;
+  }
+  .check-input::placeholder { color: var(--text-faint); }
+  .check-btn {
+    font-family: var(--sans); font-weight: 600; font-size: 14.5px; padding: 12px 24px;
+    border-radius: 7px; border: none; background: var(--teal); color: #0B1410;
+    cursor: pointer; transition: background 0.15s ease; white-space: nowrap;
+  }
+  .check-btn:hover { background: #3FE0B5; }
+  .check-btn:disabled { background: var(--line); color: var(--text-faint); cursor: not-allowed; }
+  .form-hint { font-size: 12.5px; color: var(--text-faint); text-align: center; margin: 0 0 40px; }
+  .form-hint code { font-family: var(--mono); background: var(--ink-3); padding: 1px 6px; border-radius: 4px; color: var(--amber); }
+
+  /* results area */
+  #result-area { min-height: 40px; }
+  .state-msg {
+    text-align: center; color: var(--text-dim); font-size: 14.5px; padding: 32px 0;
+    font-family: var(--mono);
+  }
+  .state-msg .dots::after { content: ''; animation: dots 1.4s steps(4, end) infinite; }
+  @keyframes dots { 0%,20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%,100% { content: '...'; } }
+
+  .error-box {
+    background: var(--coral-glow); border: 1px solid rgba(226,102,95,0.3); border-radius: 10px;
+    padding: 18px 20px; color: var(--coral); font-size: 14px; margin-bottom: 24px;
+  }
+
+  .result-card {
+    background: var(--ink-2); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; margin-bottom: 24px;
+  }
+  .result-head {
+    padding: 22px 24px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; gap: 14px;
+  }
+  .result-addr { font-family: var(--mono); font-size: 13px; color: var(--text-dim); word-break: break-all; }
+  .result-name { font-weight: 700; font-size: 17px; margin-bottom: 4px; }
+
+  .score-badge {
+    display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 8px;
+    font-family: var(--mono); font-weight: 700; font-size: 20px; flex-shrink: 0;
+  }
+  .score-badge.good { background: var(--teal-glow); color: var(--teal); border: 1px solid rgba(45,212,167,0.3); }
+  .score-badge.warn { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(217,164,65,0.3); }
+  .score-badge.bad { background: var(--coral-glow); color: var(--coral); border: 1px solid rgba(226,102,95,0.3); }
+  .score-badge .of100 { font-size: 12px; font-weight: 500; color: var(--text-faint); }
+
+  .unverified-box { padding: 24px; }
+  .unverified-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; color: var(--amber); }
+  .unverified-text { color: var(--text-dim); font-size: 14.5px; margin-bottom: 18px; }
+  .fact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .fact-cell { background: var(--ink-3); border: 1px solid var(--line-soft); border-radius: 8px; padding: 14px 16px; }
+  .fact-label { font-family: var(--mono); font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .fact-value { font-family: var(--mono); font-size: 14px; color: var(--text); }
+  .proxy-warning {
+    margin-top: 16px; background: var(--amber-glow); border: 1px solid rgba(217,164,65,0.3);
+    border-radius: 8px; padding: 14px 16px; font-size: 13.5px; color: var(--amber);
+  }
+
+  .findings-section { padding: 20px 24px; }
+  .findings-group { margin-bottom: 20px; }
+  .findings-group:last-child { margin-bottom: 0; }
+  .sev-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .sev-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .sev-critical .sev-dot { background: var(--coral); } .sev-critical { color: var(--coral); }
+  .sev-high .sev-dot { background: #E58A4D; } .sev-high { color: #E58A4D; }
+  .sev-medium .sev-dot { background: var(--amber); } .sev-medium { color: var(--amber); }
+  .sev-low .sev-dot { background: #7FB8E8; } .sev-low { color: #7FB8E8; }
+  .sev-info .sev-dot { background: var(--text-faint); } .sev-info { color: var(--text-faint); }
+
+  .finding {
+    background: var(--ink-3); border: 1px solid var(--line-soft); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 8px;
+  }
+  .finding:last-child { margin-bottom: 0; }
+  .finding-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .finding-desc { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
+  .finding-fix { font-size: 12.5px; color: var(--teal); }
+  .finding-fix strong { color: var(--text); }
+
+  .share-row { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+  .share-btn {
+    font-family: var(--sans); font-size: 13px; font-weight: 600; padding: 9px 16px;
+    border-radius: 7px; border: 1px solid var(--line); background: transparent; color: var(--text-dim);
+    cursor: pointer; transition: border-color 0.15s ease;
+  }
+  .share-btn:hover { border-color: var(--text-faint); color: var(--text); }
+
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--line-soft); margin-top: 40px; text-align: center; }
+  .footer-links { display: flex; gap: 20px; justify-content: center; font-size: 13.5px; margin-bottom: 12px; }
+  .footer-links a { color: var(--text-dim); }
+  .footer-links a:hover { color: var(--teal); text-decoration: none; }
+  .footer-note { color: var(--text-faint); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="brand"><span class="dot"></span>ArcAuditAgent</div>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="https://github.com/knisaci/arc-audit-agent">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero">
+    <p class="eyebrow">Free · No wallet needed</p>
+    <h1>Check any contract on Arc</h1>
+    <p class="lede">Paste an address. Verified contracts get a full Claude-powered audit. Unverified ones get deployment and risk signals instead.</p>
+
+    <div class="check-form">
+      <input class="check-input" id="addr-input" type="text" placeholder="0x..." autocomplete="off" spellcheck="false">
+      <button class="check-btn" id="check-btn">Check</button>
+    </div>
+    <p class="form-hint">Try it: <code>0xC996c0143c4C88F0B0bC32d328D14c071A603CcB</code></p>
+  </div>
+
+  <div id="result-area"></div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="/">ArcAuditAgent Home</a>
+    <a href="https://github.com/knisaci/arc-audit-agent">GitHub</a>
+    <a href="https://x.com/knisaci">X</a>
+  </div>
+  <p class="footer-note">Runs on Arc testnet. Results for verified contracts are Claude-powered analysis — always verify independently for anything high-stakes.</p>
+</footer>
+
+<script>
+const API_BASE = window.location.origin;
+const resultArea = document.getElementById('result-area');
+const input = document.getElementById('addr-input');
+const btn = document.getElementById('check-btn');
+
+function isValidAddress(addr) {
+  return /^0x[a-fA-F0-9]{40}$/.test(addr.trim());
+}
+
+function scoreBand(score) {
+  if (score >= 70) return 'good';
+  if (score >= 40) return 'warn';
+  return 'bad';
+}
+
+function sevRank(sev) {
+  return { Critical: 0, High: 1, Medium: 2, Low: 3, Info: 4 }[sev] ?? 5;
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+function renderFindingsGroup(label, cls, items, showLines) {
+  if (!items || items.length === 0) return '';
+  const rows = items.map(f => `
+    <div class="finding">
+      <div class="finding-title">${esc(f.title)}</div>
+      <div class="finding-desc">${esc(f.description)}</div>
+      ${f.recommendation ? `<div class="finding-fix"><strong>Fix:</strong> ${esc(f.recommendation)}</div>` : ''}
+    </div>
+  `).join('');
+  return `
+    <div class="findings-group">
+      <div class="sev-label ${cls}"><span class="sev-dot"></span>${esc(label)} (${items.length})</div>
+      ${rows}
+    </div>
+  `;
+}
+
+function renderVerifiedResult(address, data) {
+  const band = scoreBand(data.score);
+  const allFindings = (data.vulnerabilities || []).slice().sort((a, b) => sevRank(a.severity) - sevRank(b.severity));
+  const bySeverity = {};
+  for (const f of allFindings) {
+    (bySeverity[f.severity] ??= []).push(f);
+  }
+
+  let findingsHtml = '';
+  for (const sev of ['Critical', 'High', 'Medium', 'Low', 'Info']) {
+    if (bySeverity[sev]) {
+      findingsHtml += renderFindingsGroup(sev, 'sev-' + sev.toLowerCase(), bySeverity[sev]);
+    }
+  }
+
+  const gasHtml = renderFindingsGroup('Gas findings', 'sev-info', (data.gasFindings || []).map(f => ({ title: f.title, description: f.description, recommendation: f.recommendation })));
+  const bpHtml = renderFindingsGroup('Best practice', 'sev-info', (data.bestPracticeFindings || []).map(f => ({ title: f.title, description: f.description })));
+
+  resultArea.innerHTML = `
+    <div class="result-card">
+      <div class="result-head">
+        <div>
+          <div class="result-name">${esc(data.contractName || 'Contract')}</div>
+          <div class="result-addr">${esc(address)}</div>
+        </div>
+        <div class="score-badge ${band}">${data.score}<span class="of100">/ 100</span></div>
+      </div>
+      <div class="findings-section">
+        ${findingsHtml || '<p style="color:var(--text-dim);font-size:14px;">No vulnerabilities flagged.</p>'}
+        ${gasHtml}
+        ${bpHtml}
+      </div>
+    </div>
+    <div class="share-row">
+      <button class="share-btn" id="copy-link-btn">Copy shareable link</button>
+      <a class="share-btn" href="https://testnet.arcscan.app/address/${esc(address)}" target="_blank" rel="noopener">View on Arcscan ↗</a>
+    </div>
+  `;
+  wireShareButton(address);
+}
+
+function renderUnverifiedResult(address, data) {
+  const depDate = data.deploymentTimestamp
+    ? new Date(data.deploymentTimestamp * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    : 'Unknown';
+
+  resultArea.innerHTML = `
+    <div class="result-card">
+      <div class="result-head">
+        <div>
+          <div class="result-name">Unverified contract</div>
+          <div class="result-addr">${esc(address)}</div>
+        </div>
+        <div class="score-badge warn">?<span class="of100">unverified</span></div>
+      </div>
+      <div class="unverified-box">
+        <p class="unverified-text">${esc(data.message)}</p>
+        <div class="fact-grid">
+          <div class="fact-cell">
+            <div class="fact-label">Deployed</div>
+            <div class="fact-value">${esc(depDate)}</div>
+          </div>
+          <div class="fact-cell">
+            <div class="fact-label">Block</div>
+            <div class="fact-value">${data.deploymentBlock ?? '—'}</div>
+          </div>
+          <div class="fact-cell">
+            <div class="fact-label">Upgradeable</div>
+            <div class="fact-value">${data.isLikelyProxy ? 'Yes (proxy)' : 'No'}</div>
+          </div>
+        </div>
+        ${data.warning ? `<div class="proxy-warning">⚠ ${esc(data.warning)}</div>` : ''}
+      </div>
+    </div>
+    <div class="share-row">
+      <button class="share-btn" id="copy-link-btn">Copy shareable link</button>
+      <a class="share-btn" href="https://testnet.arcscan.app/address/${esc(address)}" target="_blank" rel="noopener">View on Arcscan ↗</a>
+    </div>
+  `;
+  wireShareButton(address);
+}
+
+function wireShareButton(address) {
+  const copyBtn = document.getElementById('copy-link-btn');
+  if (!copyBtn) return;
+  copyBtn.addEventListener('click', () => {
+    const url = `${window.location.origin}${window.location.pathname}?address=${address}`;
+    navigator.clipboard.writeText(url).then(() => {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = 'Copy shareable link'; }, 1600);
+    });
+  });
+}
+
+async function runCheck(address) {
+  if (!isValidAddress(address)) {
+    resultArea.innerHTML = `<div class="error-box">That doesn't look like a valid contract address. It should start with 0x and be 42 characters long.</div>`;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Checking...';
+  resultArea.innerHTML = `<div class="state-msg">Fetching and analyzing<span class="dots"></span></div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: address.trim() })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      resultArea.innerHTML = `<div class="error-box">${esc(data.error || 'Something went wrong. Please try again.')}</div>`;
+      return;
+    }
+
+    if (data.verified) {
+      renderVerifiedResult(address.trim(), data);
+    } else {
+      renderUnverifiedResult(address.trim(), data);
+    }
+  } catch (err) {
+    resultArea.innerHTML = `<div class="error-box">Couldn't reach the audit service. Please try again in a moment.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Check';
+  }
+}
+
+btn.addEventListener('click', () => runCheck(input.value));
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter') runCheck(input.value); });
+
+// Auto-run if address is in the URL query string (shareable links)
+const params = new URLSearchParams(window.location.search);
+const prefillAddress = params.get('address');
+if (prefillAddress) {
+  input.value = prefillAddress;
+  runCheck(prefillAddress);
+}
+</script>
+
+</body>
+</html>
