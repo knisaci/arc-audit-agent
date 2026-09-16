@@ -19,14 +19,14 @@ const config: HardhatUserConfig = {
       url: process.env.ARC_MAINNET_RPC_URL || "https://rpc.arc.network",
       chainId: 5042,
       accounts: [
-        process.env.DEPLOYER_PRIVATE_KEY,
-        process.env.TREASURY_PRIVATE_KEY,
+        process.env.MAINNET_DEPLOYER_PRIVATE_KEY,
       ].filter(Boolean) as string[],
     },
   },
   etherscan: {
     apiKey: {
       arc_testnet: "abc",
+      arc_mainnet: "abc",
     },
     customChains: [
       {
@@ -35,6 +35,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://testnet.arcscan.app/api",
           browserURL: "https://testnet.arcscan.app",
+        },
+      },
+      {
+        network: "arc_mainnet",
+        chainId: 5042,
+        urls: {
+          apiURL: "https://explorer.arc.io/api",
+          browserURL: "https://explorer.arc.io",
         },
       },
     ],

@@ -22,9 +22,12 @@ const PORT = process.env.PORT || 3000;
 // Health check
 app.get("/health", async (_req, res) => {
   const count = getAuditCount();
+  const network = (process.env.ARC_RPC_URL || "").includes("testnet")
+    ? "arc-testnet"
+    : "arc-mainnet";
   res.json({
     status: "ok",
-    network: "arc-testnet",
+    network,
     contract: process.env.AUDIT_REGISTRY_ADDRESS,
     agenticCommerce: process.env.AGENTIC_COMMERCE_ADDRESS,
     auditCount: count,
