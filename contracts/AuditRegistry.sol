@@ -3,10 +3,17 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AuditRegistry is Ownable {
+    using SafeERC20 for IERC20;
+
     IERC20 public usdc;
     address public treasury;
+    // NOTE: auditFee is informational only. Fee enforcement happens off-chain
+    // in the backend (payment.ts) before submitAudit() is called. This is a
+    // deliberate design choice for pricing flexibility — see project docs.
+    // submitAudit() does not collect USDC on-chain.
     uint256 public auditFee;
 
     struct AuditRecord {
@@ -87,6 +94,6 @@ contract AuditRegistry is Ownable {
     function withdrawFees() external onlyOwner {
         uint256 balance = usdc.balanceOf(address(this));
         require(balance > 0, "No fees to withdraw");
-        usdc.transfer(treasury, balance);
+        usdc.safeTransfer(treasury, balance);
     }
 }
