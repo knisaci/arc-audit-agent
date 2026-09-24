@@ -11,18 +11,23 @@ export async function checkUnverifiedContract(
   deploymentBlock: number | null;
   deploymentTimestamp: number | null;
   isLikelyProxy: boolean;
+  deployerTxCount?: number;
+  deployerFirstTxTimestamp?: number;
 }> {
   const provider = new ethers.JsonRpcProvider(rpcUrl);
 
   let deploymentBlock: number | null = null;
   let deploymentTimestamp: number | null = null;
+  let deployerAddress: string | undefined;
 
   try {
     const url = `${explorerBaseUrl}/api?module=contract&action=getcontractcreation&contractaddresses=${address}`;
     const response = await fetch(url);
     if (response.ok) {
       const data = await response.json();
-      const txHash: string | undefined = data?.result?.[0]?.txHash;
+      const result0 = data?.result?.[0];
+      const txHash: string | undefined = result0?.txHash;
+      deployerAddress = result0?.from;
       if (txHash) {
         const tx = await provider.getTransaction(txHash);
         if (tx?.blockNumber != null) {
@@ -46,5 +51,27 @@ export async function checkUnverifiedContract(
     // default to false
   }
 
-  return { deploymentBlock, deploymentTimestamp, isLikelyProxy };
+  let deployerTxCount: number | undefined;
+  let deployerFirstTxTimestamp: number | undefined;
+
+  if (deployerAddress) {
+    try {
+      const txlistUrl = `${explorerBaseUrl}/api?module=account&action=txlist&address=${deployerAddress}&sort=asc`;
+      const txlistResponse = await fetch(txlistUrl);
+      if (txlistResponse.ok) {
+        const txlistData = await txlistResponse.json();
+        const txList: Array<{ timeStamp: string }> = txlistData?.result;
+        if (Array.isArray(txList)) {
+          deployerTxCount = txList.length;
+          if (txList.length > 0) {
+            deployerFirstTxTimestamp = Number(txList[0].timeStamp);
+          }
+        }
+      }
+    } catch {
+      // leave deployerTxCount and deployerFirstTxTimestamp as undefined
+    }
+  }
+
+  return { deploymentBlock, deploymentTimestamp, isLikelyProxy, deployerTxCount, deployerFirstTxTimestamp };
 }

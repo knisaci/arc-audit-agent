@@ -332,6 +332,8 @@ app.post("/check", async (req, res) => {
       warning: unverified.isLikelyProxy
         ? "This contract is upgradeable (proxy pattern). The owner can change its logic after deployment."
         : null,
+      deployerTxCount: unverified.deployerTxCount,
+      deployerFirstTxTimestamp: unverified.deployerFirstTxTimestamp,
     });
     return;
   }
