@@ -13,12 +13,14 @@ export async function checkUnverifiedContract(
   isLikelyProxy: boolean;
   deployerTxCount?: number;
   deployerFirstTxTimestamp?: number;
+  explorerUnavailable: boolean;
 }> {
   const provider = new ethers.JsonRpcProvider(rpcUrl);
 
   let deploymentBlock: number | null = null;
   let deploymentTimestamp: number | null = null;
   let deployerAddress: string | undefined;
+  let explorerUnavailable = false;
 
   try {
     const url = `${explorerBaseUrl}/api?module=contract&action=getcontractcreation&contractaddresses=${address}`;
@@ -38,9 +40,12 @@ export async function checkUnverifiedContract(
           }
         }
       }
+    } else {
+      explorerUnavailable = true;
     }
   } catch {
     // leave deploymentBlock and deploymentTimestamp as null
+    explorerUnavailable = true;
   }
 
   let isLikelyProxy = false;
@@ -73,5 +78,5 @@ export async function checkUnverifiedContract(
     }
   }
 
-  return { deploymentBlock, deploymentTimestamp, isLikelyProxy, deployerTxCount, deployerFirstTxTimestamp };
+  return { deploymentBlock, deploymentTimestamp, isLikelyProxy, deployerTxCount, deployerFirstTxTimestamp, explorerUnavailable };
 }

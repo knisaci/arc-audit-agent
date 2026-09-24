@@ -334,6 +334,7 @@ app.post("/check", async (req, res) => {
         : null,
       deployerTxCount: unverified.deployerTxCount,
       deployerFirstTxTimestamp: unverified.deployerFirstTxTimestamp,
+      explorerUnavailable: unverified.explorerUnavailable,
     });
     return;
   }
