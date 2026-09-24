@@ -15,7 +15,7 @@ export const networkConfig = {
   rpcUrl: process.env.ARC_RPC_URL!,
   registryAddress: process.env.AUDIT_REGISTRY_ADDRESS!,
   usdcAddress: process.env.USDC_ADDRESS,
-  isMainnet: process.env.ARC_RPC_URL === "https://rpc.arc.network",
+  isMainnet: (process.env.ARC_RPC_URL || "").includes("mainnet"),
 };
 
 console.log(

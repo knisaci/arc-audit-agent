@@ -368,7 +368,7 @@ app.post("/check", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`ArcAuditAgent backend running on port ${PORT}`);
-  console.log(`Network: arc-testnet`);
+  console.log(`Network: ${(process.env.ARC_RPC_URL || "").includes("testnet") ? "arc-testnet" : "arc-mainnet"}`);
   console.log(`AuditRegistry: ${process.env.AUDIT_REGISTRY_ADDRESS}`);
   console.log(`AgenticCommerce: ${process.env.AGENTIC_COMMERCE_ADDRESS}`);
 });
